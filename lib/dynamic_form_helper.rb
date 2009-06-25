@@ -116,8 +116,11 @@ module DynamicFormHelper
     text << "  " + __standard_label(input_name.sub(']','_area]'), field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
+      (field.dividers == true ? content_tag(:span, '(', :class => 'phoneDivider') : '') +
       text_field_tag(input_name.sub(']','_area]'), h(field.area || field.area_prompt), {:class => 'formPhone formPhone3', :maxlength => 3}) + 
+      (field.dividers == true ? content_tag(:span, ')', :class => 'phoneDivider') : '') +
       text_field_tag(input_name.sub(']','_prefix]'), h(field.prefix || field.prefix_prompt), {:class => 'formPhone formPhone3', :maxlength => 3}) + 
+      (field.dividers == true ? content_tag(:span, '-', :class => 'phoneDivider') : '') +
       text_field_tag(input_name.sub(']','_suffix]'), h(field.suffix || field.suffix_prompt), {:class => 'formPhone formPhone4', :maxlength => 4})
     end
 
