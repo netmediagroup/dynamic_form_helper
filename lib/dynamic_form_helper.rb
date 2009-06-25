@@ -113,7 +113,7 @@ module DynamicFormHelper
     return __text_field(field, input_name) unless field.separate_inputs
 
     text = String.new
-    text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
+    text << "  " + __standard_label(input_name.sub(']','_area]'), field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
       text_field_tag(input_name.sub(']','_area]'), h(field.area || field.area_prompt), {:class => 'formPhone formPhone3', :maxlength => 3}) + 
