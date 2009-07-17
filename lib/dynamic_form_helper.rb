@@ -76,14 +76,14 @@ module DynamicFormHelper
     rendered_fields.join("\n")
   end
 
-  def __checkbox(field, input_name)
+  def __check_box(field, input_name)
     box = String.new
     box << __required_indicator_tag if field.required == true
     box << content_tag(:div, :class => "FormField-Checkbox") do
       check_box_tag(input_name, :checked => !field.value.blank?)
     end
     box << content_tag(:div, :class => "FormField-CheckboxLabel") do
-      label_tag(input_name, field.displayed_label)
+      __label_tag(input_name, field.displayed_label)
     end
     return box
   end
@@ -94,7 +94,7 @@ module DynamicFormHelper
   def __hidden_field(field, input_name)
     text = String.new
     text << "  " + content_tag(:div, :class => "FormField-Hidden") do
-      hidden_field_tag(input_name, h(field.value), field.html_options.reverse_merge(:id => nil))
+      hidden_field_tag(input_name, h(field.value), {:id => nil})
     end
     return text
   end
@@ -131,14 +131,14 @@ module DynamicFormHelper
     question = String.new
     question << __required_indicator_tag if field.required == true
     question << field.displayed_label
-
+    
     selected_items = !field.value.blank? ? field.value.to_a : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : [])
-
+    
     options = String.new
     field.option_groups.each do |group|
       group.options.each do |option|
         options << radio_button_tag(input_name, option.value, selected_items.include?(option.value), :class => 'formRadio')
-        options << label_tag("#{input_name}_#{option.value}", option.attributes['display'], :class => 'labelRadio')
+        options << __label_tag("#{input_name}_#{option.value.downcase}", option.attributes['display'], :class => 'labelRadio')
       end
     end
 
@@ -222,8 +222,12 @@ module DynamicFormHelper
   def __standard_label(input_name, label, required=false)
     text = String.new
     text << __required_indicator_tag if required == true
-    text << label_tag(input_name, label)
+    text << __label_tag(input_name, label)
     return content_tag(:div, text, :class => "FormField-Label")
+  end
+
+  def __label_tag(name, text = nil, options = {})
+    label_tag(name.downcase.gsub(/\./,''), text, options)
   end
 
 end
