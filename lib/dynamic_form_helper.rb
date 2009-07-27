@@ -219,7 +219,7 @@ module DynamicFormHelper
   # -----------------------------------------------------------------------------------------------
 
   def __required_indicator_tag
-    indicator = @dynamic_options[:required_indicator] || '*'
+    indicator = @dynamic_options && @dynamic_options[:required_indicator] ? @dynamic_options[:required_indicator] : '*'
     content_tag(:span, "#{indicator}", :class => 'required')
   end
 
