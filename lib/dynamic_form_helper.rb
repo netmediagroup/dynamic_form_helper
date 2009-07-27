@@ -77,15 +77,16 @@ module DynamicFormHelper
   end
 
   def __check_box(field, input_name)
-    box = String.new
-    box << __required_indicator_tag if field.required == true
-    box << content_tag(:div, :class => "FormField-Checkbox") do
-      check_box_tag(input_name, :checked => !field.value.blank?)
+    text = String.new
+    text << __required_indicator_tag if field.required == true
+    text << "  " + content_tag(:div, :class => "FormField-Input") do
+      check_box(@dynamic_options[:object_name], field.column_name, {:checked => field.checked}, field.input_value, 'unchecked_value')
     end
-    box << content_tag(:div, :class => "FormField-CheckboxLabel") do
-      __label_tag(input_name, field.displayed_label)
+    text << "\n"
+    text << "  " + content_tag(:div, :class => "FormField-CheckboxLabel") do
+      label_tag(input_name, field.displayed_label)
     end
-    return box
+    return text
   end
 
   def __file(field, input_name)
@@ -93,7 +94,7 @@ module DynamicFormHelper
 
   def __hidden_field(field, input_name)
     text = String.new
-    text << "  " + content_tag(:div, :class => "FormField-Hidden") do
+    text << "  " + content_tag(:div, :class => "FormField-Input") do
       hidden_field_tag(input_name, h(field.value), {:id => nil})
     end
     return text
@@ -103,7 +104,7 @@ module DynamicFormHelper
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
-    text << "  " + content_tag(:div, :class => "FormField-Password") do
+    text << "  " + content_tag(:div, :class => "FormField-Input") do
       password_field_tag(input_name, h(field.value) || field.prompt, {:class => 'formInput'}.merge(field.html_options))
     end
     return text
@@ -131,14 +132,16 @@ module DynamicFormHelper
     question = String.new
     question << __required_indicator_tag if field.required == true
     question << field.displayed_label
-    
+
     selected_items = !field.value.blank? ? field.value.to_a : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : [])
-    
+
     options = String.new
     field.option_groups.each do |group|
       group.options.each do |option|
-        options << radio_button_tag(input_name, option.value, selected_items.include?(option.value), :class => 'formRadio')
-        options << __label_tag("#{input_name}_#{option.value.downcase}", option.attributes['display'], :class => 'labelRadio')
+        options << content_tag(:span, :class => 'spanRadio') do
+          radio_button_tag(input_name, option.value, selected_items.include?(option.value), :class => 'formRadio') +
+          label_tag("#{__pretty_name(input_name)}_#{__pretty_value(option.value)}", option.attributes['display'], :class => 'labelRadio')
+        end
       end
     end
 
@@ -170,7 +173,7 @@ module DynamicFormHelper
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
-    text << "  " + content_tag(:div, :class => "FormField-Select") do
+    text << "  " + content_tag(:div, :class => "FormField-Input") do
       select_tag(input_name, options, {:class => 'formSelect', :multiple => (field.html_options.size && field.html_options.size > 1 ? true: false)}.merge(field.html_options.attributes))
     end
 
@@ -181,7 +184,7 @@ module DynamicFormHelper
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
-    text << "  " + content_tag(:div, :class => "FormField-TextArea") do
+    text << "  " + content_tag(:div, :class => "FormField-Input") do
       text_area_tag(input_name, h(field.value || field.prompt), field.html_options)
     end
     return text
@@ -216,18 +219,23 @@ module DynamicFormHelper
   # -----------------------------------------------------------------------------------------------
 
   def __required_indicator_tag
-    content_tag(:span, "#{@dynamic_options[:required_indicator]}", :class => 'required')
+    indicator = @dynamic_options[:required_indicator] || '*'
+    content_tag(:span, "#{indicator}", :class => 'required')
   end
 
   def __standard_label(input_name, label, required=false)
     text = String.new
     text << __required_indicator_tag if required == true
-    text << __label_tag(input_name, label)
+    text << label_tag(input_name, label)
     return content_tag(:div, text, :class => "FormField-Label")
   end
 
-  def __label_tag(name, text = nil, options = {})
-    label_tag(name.downcase.gsub(/\./,''), text, options)
+  def __pretty_name(name)
+    name.to_s.gsub(/\[/, "_").gsub(/\]/, "")
+  end
+
+  def __pretty_value(value)
+    value.to_s.gsub(/\s/, "_").gsub(/(?!-)\W/, "").downcase
   end
 
 end
