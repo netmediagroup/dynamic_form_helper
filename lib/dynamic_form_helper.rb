@@ -191,11 +191,14 @@ module DynamicFormHelper
   end
 
   def __text_field(field, input_name)
+    value = field.value || (field.respond_to?('prompt') ? field.prompt : '')
+    html_options = field.respond_to?('html_options') ? field.html_options.attributes : {}
+
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
-      text_field_tag(input_name, h(field.value || field.prompt), {:class => 'formInput'}.merge(field.html_options.attributes))
+      text_field_tag(input_name, h(value), {:class => 'formInput'}.merge(html_options))
     end
     return text
   end
