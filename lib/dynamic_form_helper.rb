@@ -111,6 +111,62 @@ module DynamicFormHelper
     return text
   end
 
+  def __multi_check_box(field, input_name)
+    # selected_items = !field.value.blank? ? field.value.to_a : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : [])
+    # 
+    # text = String.new
+    # 
+    # question = String.new
+    # question << __required_indicator_tag if field.required == true
+    # question << field.displayed_label
+    # 
+    # options = String.new
+    # field.option_groups.each do |option_group|
+    #   options << "\n    " + content_tag(:div, option_group.label, :class => 'CheckBox-GroupLabel') unless field.combine_option_groups
+    #   option_group.options.each do |option|
+    #     options << "\n    " + content_tag(:div, :class => 'CheckBox-Option') do
+    #       # check_box(input_name, option.value, :checked => selected_items.include?(option.value), :class => 'formCheck') +
+    #       check_box_tag("#{input_name}[]", option.value, selected_items.include?(option.value), :id => "#{sanitize_to_id(input_name)}_#{option.value}", :class => 'formCheck') +
+    #       label_tag("#{input_name}_#{option.value}", option.attributes['display'], :class => 'labelCheck')
+    #     end
+    #   end
+    # end
+    # options << "\n  "
+    # 
+    # text << "  " + content_tag(:div, question, :class => 'FormField-CheckQuestion')
+    # text << "\n"
+    # text << "  " + content_tag(:div, options, :class => "FormField-Input")
+    # return text
+  end
+
+  def __multi_select(field, input_name)
+    # selected_items = !field.value.blank? ? field.value : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : nil)
+    # select_items = Array.new
+    # if field.combine_option_groups || field.option_groups.size <= 1
+    #   field.option_groups.each do |group|
+    #     select_items += group.options.map{|option| [option.attributes['display'], option.value]}
+    #   end
+    #   select_items.sort!{|a,b| (a[0] || '') <=> (b[0] || '')}.uniq if field.combine_option_groups
+    #   select_items.unshift([(field.prompt.blank? ? '' : field.prompt), nil]) if (field.value.blank? && field.default_options.blank? && !field.prompt.blank?) || field.allow_blank
+    #   options = options_for_select(select_items, selected_items)
+    # else
+    #   field.option_groups.each do |group|
+    #     select_items << [[group.label], group.options.map{|option| [option.attributes['display'], option.value]}]
+    #   end
+    #   prompt = ((field.value.blank? && field.default_options.blank? && !field.prompt.blank?) || field.allow_blank) ? (field.prompt.blank? ? '' : field.prompt) : nil
+    #   options = grouped_options_for_select(select_items, selected_items, prompt)
+    # end
+    # 
+    # text = String.new
+    # text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
+    # text << "\n"
+    # text << "  " + content_tag(:div, :class => "FormField-Input") do
+    #   select_tag(input_name, options, {:class => 'formSelect', :multiple => (field.html_options.size && field.html_options.size > 1 ? true: false)}.merge(field.html_options.attributes))
+    # end
+    # 
+    # return text
+  end
+
   def __phone(field, input_name)
     return __text_field(field, input_name) unless field.separate_inputs
 
