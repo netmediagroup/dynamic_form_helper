@@ -193,13 +193,13 @@ module DynamicFormHelper
     question = String.new
     question << __required_indicator_tag if field.required == true
     question << field.displayed_label
-    
-    selected_items = !field.value.blank? ? field.value.to_a : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : [])
-    
+
+    selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
+
     options = String.new
     field.option_groups.each do |group|
       group.options.each do |option|
-        options << radio_button_tag(input_name, option.value, selected_items.include?(option.value), :class => 'formRadio')
+        options << radio_button_tag(input_name, option.value, selected_item == option.value, :class => 'formRadio')
         options << __label_tag("#{input_name}_#{option.value.downcase}", option.attributes['display'], :class => 'labelRadio')
       end
     end
@@ -212,28 +212,29 @@ module DynamicFormHelper
   end
 
   def __select(field, input_name)
-    selected_items = !field.value.blank? ? field.value : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : nil)
+    selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
+
     select_items = Array.new
     if field.combine_option_groups || field.option_groups.size <= 1
       field.option_groups.each do |group|
         select_items += group.options.map{|option| [option.attributes['display'], option.value]}
       end
       select_items.sort!{|a,b| (a[0] || '') <=> (b[0] || '')}.uniq if field.combine_option_groups
-      select_items.unshift([(field.prompt.blank? ? '' : field.prompt), nil]) if (field.value.blank? && field.default_options.blank? && !field.prompt.blank?) || field.allow_blank
-      options = options_for_select(select_items, selected_items)
+      select_items.unshift([(field.prompt.blank? ? '' : field.prompt), nil]) if (field.value.blank? && field.default_option.blank? && !field.prompt.blank?) || field.allow_blank
+      options = options_for_select(select_items, selected_item)
     else
       field.option_groups.each do |group|
         select_items << [[group.label], group.options.map{|option| [option.attributes['display'], option.value]}]
       end
-      prompt = ((field.value.blank? && field.default_options.blank? && !field.prompt.blank?) || field.allow_blank) ? (field.prompt.blank? ? '' : field.prompt) : nil
-      options = grouped_options_for_select(select_items, selected_items, prompt)
+      prompt = ((field.value.blank? && field.default_option.blank? && !field.prompt.blank?) || field.allow_blank) ? (field.prompt.blank? ? '' : field.prompt) : nil
+      options = grouped_options_for_select(select_items, selected_item, prompt)
     end
 
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Select") do
-      select_tag(input_name, options, {:class => 'formSelect', :multiple => (field.html_options.size && field.html_options.size > 1 ? true: false)}.merge(field.html_options.attributes))
+      select_tag(input_name, options, {:class => 'formSelect'})
     end
 
     return text
