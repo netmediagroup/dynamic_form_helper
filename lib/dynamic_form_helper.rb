@@ -27,25 +27,21 @@ module DynamicFormHelper
   end
 
   def render_dynamic_form(form_resource, options={})
-    options.reverse_merge!  :object_name => 'dynamic_form',
-                            :submit_text => 'Submit'
+    options.reverse_merge!(
+      :object_name => 'dynamic_form',
+      :submit_text => 'Submit'
+    )
 
     rendered_form = Array.new
-
     rendered_form << form_tag({:controller => params[:controller], :action => 'create'}, :id => "Form-#{options[:object_name]}")
-
     rendered_form << hidden_field_tag('stylesheet', h(params[:stylesheet]), :id => nil) if params[:controller] == 'iframes' && params[:stylesheet]
-
     rendered_form << render_dynamic_fields(form_resource, options)
-
     rendered_form << content_tag(:div, :id => "FormRow-Submit-#{options[:object_name]}", :class => 'FormField-Row FieldType-submit_button') do
       "\n" +
       "  " + __submit_tag(:submit_name => options[:object_name], :submit_text => options[:submit_text]) +
       "\n"
     end
-
     rendered_form << "</form>"
-
     rendered_form.join("\n")
   end
 
@@ -199,8 +195,10 @@ module DynamicFormHelper
     options = String.new
     field.option_groups.each do |group|
       group.options.each do |option|
-        options << radio_button_tag(input_name, option.value, selected_item == option.value, :class => 'formRadio')
-        options << __label_tag("#{input_name}_#{option.value.downcase}", option.attributes['display'], :class => 'labelRadio')
+        options << content_tag(:span, :class => 'spanRadio') do
+          radio_button_tag(input_name, option.value, selected_item == option.value, :class => 'formRadio') +
+          __label_tag("#{input_name}_#{option.value.downcase}", option.attributes['display'], :class => 'labelRadio')
+        end
       end
     end
 
