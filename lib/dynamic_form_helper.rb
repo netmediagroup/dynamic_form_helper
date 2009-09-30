@@ -78,7 +78,7 @@ module DynamicFormHelper
     box = String.new
     box << __required_indicator_tag if field.required == true
     box << content_tag(:div, :class => "FormField-Checkbox") do
-      check_box_tag(input_name, :checked => !field.value.blank?)
+      check_box_tag(input_name, field.input_value, !field.value.blank?)
     end
     box << content_tag(:div, :class => "FormField-CheckboxLabel") do
       __label_tag(input_name, field.displayed_label)
