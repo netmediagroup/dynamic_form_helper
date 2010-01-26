@@ -8,11 +8,21 @@ module DynamicFormHelper
         :header_message => "There #{object.errors.count == 1 ? 'was' : 'were'} #{pluralize(object.errors.count, 'error')} that did not allow your information to be processed.",
         :message => nil,
         :id => 'errorExplanation',
-        :class => 'errorExplanation'
+        :class => 'errorExplanation',
+        :order_important => true
       )
 
       unless object.errors.count.zero?
-        error_messages = object.errors.instance_variable_get('@errors').values.flatten.map {|msg| content_tag(:li, msg) }
+        errors = object.errors.instance_variable_get('@errors')
+
+        if options[:order_important] && object.fields
+          error_messages = ''
+          object.fields.each do |field|
+            errors[field.column_name].each {|msg| error_messages << content_tag(:li, msg) } if errors[field.column_name]
+          end
+        else
+          error_messages = errors.values.flatten.map {|msg| content_tag(:li, msg) }
+        end
 
         contents = ''
         contents << content_tag(options[:header_tag], options[:header_message]) unless options[:header_message].blank?
