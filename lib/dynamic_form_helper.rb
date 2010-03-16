@@ -1,8 +1,11 @@
 module DynamicFormHelper
+  # The objects passed in could potentially be frozen. Thus they need to be duplicated.
 
   def error_messages_for_dynamic_form(object_name, options={})
     object = instance_variable_get("@#{object_name}")
-    if object.errors
+    object = object.dup if object.frozen?
+
+    if object.methods.include?(:errors) && object.errors
       options.reverse_merge!(
         :header_tag => :p,
         :header_message => "There #{object.errors.count == 1 ? 'was' : 'were'} #{pluralize(object.errors.count, 'error')} that did not allow your information to be processed.",
@@ -37,6 +40,8 @@ module DynamicFormHelper
   end
 
   def render_dynamic_form(form_resource, options={})
+    form_resource = form_resource.dup if form_resource.frozen?
+
     options.reverse_merge!(
       :object_name => 'dynamic_form',
       :submit_text => 'Submit'
@@ -56,8 +61,12 @@ module DynamicFormHelper
   end
 
   def render_dynamic_fields(form_resource, options={})
-    options.reverse_merge!  :required_indicator => '*',
-                            :object_name => 'dynamic_form'
+    form_resource = form_resource.dup if form_resource.frozen?
+
+    options.reverse_merge!(
+      :required_indicator => '*',
+      :object_name => 'dynamic_form'
+    )
     @dynamic_options = options
 
     rendered_fields = Array.new
@@ -65,7 +74,7 @@ module DynamicFormHelper
     form_resource.fields.each do |field|
       input_name = options[:object_name].blank? ? field.column_name : "#{options[:object_name]}[#{field.column_name}]"
 
-      field.displayed_label = field.label
+      field.displayed_label = field.label.dup
       field.displayed_label << ':' if !field.displayed_label.empty? && !['?','.'].include?(field.displayed_label[-1,1])
 
       field.value = params[field.column_name] if field.value.nil? && !params[field.column_name].nil?
@@ -287,7 +296,7 @@ module DynamicFormHelper
   # -----------------------------------------------------------------------------------------------
 
   def __required_indicator_tag
-    content_tag(:span, "#{@dynamic_options[:required_indicator]}", :class => 'required')
+    content_tag(:span, "#{!@dynamic_options.nil? ? @dynamic_options[:required_indicator] : '*'}", :class => 'required')
   end
 
   def __standard_label(input_name, label, required=false)
