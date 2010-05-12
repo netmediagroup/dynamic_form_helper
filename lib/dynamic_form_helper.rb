@@ -5,7 +5,7 @@ module DynamicFormHelper
     object = instance_variable_get("@#{object_name}")
     object = object.dup if object.frozen?
 
-    if object.methods.include?(:errors) && object.errors
+    if object.errors
       options.reverse_merge!(
         :header_tag => :p,
         :header_message => "There #{object.errors.count == 1 ? 'was' : 'were'} #{pluralize(object.errors.count, 'error')} that did not allow your information to be processed.",
