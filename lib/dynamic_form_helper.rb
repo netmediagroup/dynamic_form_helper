@@ -97,12 +97,18 @@ module DynamicFormHelper
     box = String.new
     box << __required_indicator_tag if field.required == true
     box << content_tag(:div, :class => "FormField-Checkbox") do
-      check_box_tag(input_name, field.input_value, !field.value.blank?)
+      ____check_box(field, input_name)
     end
     box << content_tag(:div, :class => "FormField-CheckboxLabel") do
       __label_tag(input_name, field.displayed_label)
     end
     return box
+  end
+
+  def ____check_box(field, input_name)
+    text = String.new
+    text << check_box_tag(input_name, field.input_value, !field.value.blank?)
+    return text
   end
 
   def __file(field, input_name)
@@ -193,14 +199,26 @@ module DynamicFormHelper
     text << "  " + __standard_label(input_name.sub(']','_area]'), field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
-      (field.dividers == true ? content_tag(:span, '(', :class => 'phoneDivider') : '') +
-      text_field_tag(input_name.sub(']','_area]'), h(field.area || field.area_prompt), {:class => 'formPhone formPhone3', :maxlength => 3}) + 
-      (field.dividers == true ? content_tag(:span, ')', :class => 'phoneDivider') : '') +
-      text_field_tag(input_name.sub(']','_prefix]'), h(field.prefix || field.prefix_prompt), {:class => 'formPhone formPhone3', :maxlength => 3}) + 
-      (field.dividers == true ? content_tag(:span, '-', :class => 'phoneDivider') : '') +
-      text_field_tag(input_name.sub(']','_suffix]'), h(field.suffix || field.suffix_prompt), {:class => 'formPhone formPhone4', :maxlength => 4})
+      ____phone(field, input_name)
     end
 
+    return text
+  end
+
+  def ____phone(field, input_name)
+    return ____text_field(field, input_name) unless field.separate_inputs
+
+    field.area = params["#{field.column_name}_area"].nil? ? field.value[0..2] : params["#{field.column_name}_area"] if field.area.nil? && (!field.value.nil? || !params["#{field.column_name}_area"].nil?)
+    field.prefix = params["#{field.column_name}_prefix"].nil? ? field.value[3..5] : params["#{field.column_name}_prefix"] if field.prefix.nil? && (!field.value.nil? || !params["#{field.column_name}_prefix"].nil?)
+    field.suffix = params["#{field.column_name}_suffix"].nil? ? field.value[6..9] : params["#{field.column_name}_suffix"] if field.suffix.nil? && (!field.value.nil? || !params["#{field.column_name}_suffix"].nil?)
+
+    text = String.new
+    text << content_tag(:span, '(', :class => 'phoneDivider') if field.dividers == true
+    text << text_field_tag(input_name.sub(']','_area]'), h(field.area || field.area_prompt), {:class => 'formPhone formPhone3', :maxlength => 3})
+    text << content_tag(:span, ')', :class => 'phoneDivider') if field.dividers == true
+    text << text_field_tag(input_name.sub(']','_prefix]'), h(field.prefix || field.prefix_prompt), {:class => 'formPhone formPhone3', :maxlength => 3})
+    text << content_tag(:span, '-', :class => 'phoneDivider') if field.dividers == true
+    text << text_field_tag(input_name.sub(']','_suffix]'), h(field.suffix || field.suffix_prompt), {:class => 'formPhone formPhone4', :maxlength => 4})
     return text
   end
 
@@ -229,6 +247,17 @@ module DynamicFormHelper
   end
 
   def __select(field, input_name)
+    text = String.new
+    text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
+    text << "\n"
+    text << "  " + content_tag(:div, :class => "FormField-Select") do
+      ____select(field, input_name)
+    end
+
+    return text
+  end
+
+  def ____select(field, input_name)
     selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
 
     select_items = Array.new
@@ -237,7 +266,7 @@ module DynamicFormHelper
         select_items += group.options.map{|option| [option.attributes['display'], option.value]}
       end
       select_items.sort!{|a,b| (a[0] || '') <=> (b[0] || '')}.uniq if field.combine_option_groups
-      select_items.unshift([(field.prompt.blank? ? '' : field.prompt), nil]) if (field.value.blank? && field.default_option.blank? && !field.prompt.blank?) || field.allow_blank
+      select_items.unshift([(field.prompt.blank? ? '' : field.prompt), nil]) if (field.value.blank? && field.default_option.blank? && !field.prompt.blank?) || (field.responds_to?(:allow_blank) && field.allow_blank)
       options = options_for_select(select_items, selected_item)
     else
       field.option_groups.each do |group|
@@ -247,13 +276,20 @@ module DynamicFormHelper
       options = grouped_options_for_select(select_items, selected_item, prompt)
     end
 
-    text = String.new
-    text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
-    text << "\n"
-    text << "  " + content_tag(:div, :class => "FormField-Select") do
-      select_tag(input_name, options, {:class => 'formSelect'})
+    html_options = {:class => 'formSelect'}
+
+    if field.respond_to?(:prompt) && !field.prompt.blank?
+      first_value = options.match(/^<option.*?>(.*?)</)
+      if first_value && first_value[1] == field.prompt
+        options.sub!(/^<(.*?)>/, '<\1 class="prompt">')
+      end
+      html_options[:onfocus] = "this.className='#{html_options[:class]}';"
+      html_options[:onblur] = "if(this[this.selectedIndex].text=='#{field.prompt}'){this.className='#{html_options[:class]} prompt';}"
+      html_options[:class] = "#{html_options[:class]} prompt" if selected_item.blank?
     end
 
+    text = String.new
+    text << select_tag(input_name, options, html_options)
     return text
   end
 
@@ -272,8 +308,25 @@ module DynamicFormHelper
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
-      text_field_tag(input_name, h(field.value || field.prompt), {:class => 'formInput'}.merge(field.html_options.attributes))
+      ____text_field(field, input_name)
     end
+    return text
+  end
+
+  def ____text_field(field, input_name)
+    value = field.value || field.prompt
+
+    html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
+    html_options[:class] = 'formInput' if html_options[:class].nil?
+
+    if !field.prompt.blank?
+      html_options[:onfocus] = "if(this.value=='#{field.prompt}'){this.value=''; this.className='#{html_options[:class]}';}"
+      html_options[:onblur] = "if(this.value==''){this.value='#{field.prompt}'; this.className='#{html_options[:class]} prompt';}"
+      html_options[:class] = "#{html_options[:class]} prompt" if value == field.prompt
+    end
+
+    text = String.new
+    text << text_field_tag(input_name, h(value), html_options)
     return text
   end
 
@@ -281,15 +334,22 @@ module DynamicFormHelper
 
   def __submit_tag(options={})
     btn = String.new
-    span_id = "submit-span-#{options[:submit_name]}"
     btn << content_tag(:div, :class => "FormField-Submit", :id => "FormField-Submit-#{options[:submit_name]}") do
-      submit_tag(options[:submit_text],
-        :class => 'FormField-SubmitButton',
-        :onmouseover => "this.className='FormField-SubmitButton-on'; document.getElementById('#{span_id}').className='FormField-SubmitSpan-on';",
-        :onmouseout => "this.className='FormField-SubmitButton'; document.getElementById('#{span_id}').className='FormField-SubmitSpan';"
-      ) + 
-      content_tag(:span, '', :class => "FormField-SubmitSpan", :id => span_id)
+      ____submit_tag(options)
     end
+    return btn
+  end
+
+  def ____submit_tag(options={})
+    span_id = "submit-span-#{options[:submit_name]}"
+
+    btn = String.new
+    btn << submit_tag(options[:submit_text],
+      :class => 'FormField-SubmitButton',
+      :onmouseover => "this.className='FormField-SubmitButton-on'; document.getElementById('#{span_id}').className='FormField-SubmitSpan-on';",
+      :onmouseout => "this.className='FormField-SubmitButton'; document.getElementById('#{span_id}').className='FormField-SubmitSpan';"
+    )
+    btn << content_tag(:span, '', :class => "FormField-SubmitSpan", :id => span_id)
     return btn
   end
 
