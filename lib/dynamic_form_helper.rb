@@ -47,9 +47,9 @@ module DynamicFormHelper
       :submit_text => 'Submit'
     )
 
-    rendered_form = Array.new
-    rendered_form << form_tag({:controller => params[:controller], :action => 'create'}, :id => "Form-#{options[:object_name]}")
-    rendered_form << hidden_field_tag('stylesheet', h(params[:stylesheet]), :id => nil) if params[:controller] == 'iframes' && params[:stylesheet]
+    rendered_form =  Array.new
+    rendered_form << form_tag({:controller => controller.controller_name, :action => 'create'}, :id => "Form-#{options[:object_name]}")
+    rendered_form << hidden_field_tag('stylesheet', h(params[:stylesheet]), :id => nil) if controller.controller_name == 'iframes' && params[:stylesheet]
     rendered_form << render_dynamic_fields(form_resource, options)
     rendered_form << content_tag(:div, :id => "FormRow-Submit-#{options[:object_name]}", :class => 'FormField-Row FieldType-submit_button') do
       "\n" +
@@ -257,8 +257,9 @@ module DynamicFormHelper
     return text
   end
 
-  def ____select(field, input_name)
+  def ____select(field, input_name, overriding_prompt=nil)
     selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
+    prompt = overriding_prompt || (field.prompt if field.respond_to?(:prompt))
 
     select_items = Array.new
     if field.combine_option_groups || field.option_groups.size <= 1
@@ -266,25 +267,25 @@ module DynamicFormHelper
         select_items += group.options.map{|option| [option.attributes['display'], option.value]}
       end
       select_items.sort!{|a,b| (a[0] || '') <=> (b[0] || '')}.uniq if field.combine_option_groups
-      select_items.unshift([(field.prompt.blank? ? '' : field.prompt), nil]) if (field.value.blank? && field.default_option.blank? && !field.prompt.blank?) || (field.responds_to?(:allow_blank) && field.allow_blank)
+      select_items.unshift([(prompt.blank? ? '' : prompt), nil]) if (field.value.blank? && field.default_option.blank? && !prompt.blank?) || (field.responds_to?(:allow_blank) && field.allow_blank)
       options = options_for_select(select_items, selected_item)
     else
       field.option_groups.each do |group|
         select_items << [[group.label], group.options.map{|option| [option.attributes['display'], option.value]}]
       end
-      prompt = ((field.value.blank? && field.default_option.blank? && !field.prompt.blank?) || field.allow_blank) ? (field.prompt.blank? ? '' : field.prompt) : nil
-      options = grouped_options_for_select(select_items, selected_item, prompt)
+      grouped_prompt = ((field.value.blank? && field.default_option.blank? && !prompt.blank?) || field.allow_blank) ? (prompt.blank? ? '' : prompt) : nil
+      options = grouped_options_for_select(select_items, selected_item, grouped_prompt)
     end
 
     html_options = {:class => 'formSelect'}
 
-    if field.respond_to?(:prompt) && !field.prompt.blank?
+    unless prompt.blank?
       first_value = options.match(/^<option.*?>(.*?)</)
-      if first_value && first_value[1] == field.prompt
+      if first_value && first_value[1] == prompt
         options.sub!(/^<(.*?)>/, '<\1 class="prompt">')
       end
       html_options[:onfocus] = "this.className='#{html_options[:class]}';"
-      html_options[:onblur] = "if(this[this.selectedIndex].text=='#{field.prompt}'){this.className='#{html_options[:class]} prompt';}"
+      html_options[:onblur] = "if(this[this.selectedIndex].text=='#{prompt}'){this.className='#{html_options[:class]} prompt';}"
       html_options[:class] = "#{html_options[:class]} prompt" if selected_item.blank?
     end
 
@@ -313,16 +314,17 @@ module DynamicFormHelper
     return text
   end
 
-  def ____text_field(field, input_name)
-    value = field.value || field.prompt
+  def ____text_field(field, input_name, overriding_prompt=nil)
+    prompt = overriding_prompt || (field.prompt if field.respond_to?(:prompt))
+    value = field.value || prompt
 
     html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
     html_options[:class] = 'formInput' if html_options[:class].nil?
 
-    if !field.prompt.blank?
-      html_options[:onfocus] = "if(this.value=='#{field.prompt}'){this.value=''; this.className='#{html_options[:class]}';}"
-      html_options[:onblur] = "if(this.value==''){this.value='#{field.prompt}'; this.className='#{html_options[:class]} prompt';}"
-      html_options[:class] = "#{html_options[:class]} prompt" if value == field.prompt
+    unless prompt.blank?
+      html_options[:onfocus] = "if(this.value=='#{prompt}'){this.value=''; this.className='#{html_options[:class]}';}"
+      html_options[:onblur] = "if(this.value==''){this.value='#{prompt}'; this.className='#{html_options[:class]} prompt';}"
+      html_options[:class] = "#{html_options[:class]} prompt" if value == prompt
     end
 
     text = String.new
@@ -345,7 +347,7 @@ module DynamicFormHelper
 
     btn = String.new
     btn << submit_tag(options[:submit_text],
-      :class => 'FormField-SubmitButton',
+      :class => "FormField-SubmitButton",
       :onmouseover => "this.className='FormField-SubmitButton-on'; document.getElementById('#{span_id}').className='FormField-SubmitSpan-on';",
       :onmouseout => "this.className='FormField-SubmitButton'; document.getElementById('#{span_id}').className='FormField-SubmitSpan';"
     )
