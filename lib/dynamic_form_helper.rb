@@ -41,19 +41,23 @@ module DynamicFormHelper
 
   def render_dynamic_form(form_resource, options={})
     form_resource = form_resource.dup if form_resource.frozen?
+    form_resource.displaying_step = nil unless form_resource.attributes.has_key?('displaying_step')
+    form_resource.last_step = nil unless form_resource.attributes.has_key?('last_step')
 
     options.reverse_merge!(
       :object_name => 'dynamic_form',
-      :submit_text => 'Submit'
+      :submit_text => 'Submit',
+      :step_submit_text => 'Next'
     )
 
     rendered_form =  Array.new
     rendered_form << form_tag({:controller => controller.controller_name, :action => 'create'}, :id => "Form-#{options[:object_name]}")
+    rendered_form << hidden_field_tag('displaying_step', form_resource.displaying_step) unless form_resource.displaying_step.nil?
     rendered_form << hidden_field_tag('stylesheet', h(params[:stylesheet]), :id => nil) if controller.controller_name == 'iframes' && params[:stylesheet]
     rendered_form << render_dynamic_fields(form_resource, options)
     rendered_form << content_tag(:div, :id => "FormRow-Submit-#{options[:object_name]}", :class => 'FormField-Row FieldType-submit_button') do
       "\n" +
-      "  " + __submit_tag(:submit_name => options[:object_name], :submit_text => options[:submit_text]) +
+      "  " + __submit_tag(:submit_name => options[:object_name], :submit_text => (form_resource.displaying_step != form_resource.last_step ? options[:step_submit_text] : options[:submit_text]), :displaying_step => form_resource.displaying_step) +
       "\n"
     end
     rendered_form << "</form>"
@@ -83,11 +87,11 @@ module DynamicFormHelper
 
       rendered_fields << content_tag(:div, :id => "FormRow-#{field.column_name}", :class => "FormField-Row FieldType-#{field.field_type}#{error_indicator_class}") do
         "\n" +
-        self.send("__#{field.field_type}", field, input_name) +
+        self.send((field.display? ? "__#{field.field_type}" : :__hidden_field), field, input_name) +
         "\n" +
         "  " + content_tag(:div, '', :class => 'clear') +
         "\n"
-      end
+      end unless !field.display? && field.value.blank?
     end
 
     rendered_fields.join("\n")
@@ -336,7 +340,7 @@ module DynamicFormHelper
 
   def __submit_tag(options={})
     btn = String.new
-    btn << content_tag(:div, :class => "FormField-Submit", :id => "FormField-Submit-#{options[:submit_name]}") do
+    btn << content_tag(:div, :class => "FormField-Submit Submit-#{options[:submit_text].gsub(/\W/, '').underscore}#{" SubmitStep#{options[:displaying_step]}" unless options[:displaying_step].nil?}", :id => "FormField-Submit-#{options[:submit_name]}") do
       ____submit_tag(options)
     end
     return btn
