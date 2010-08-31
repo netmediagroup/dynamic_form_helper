@@ -51,7 +51,7 @@ module DynamicFormHelper
     )
 
     rendered_form =  Array.new
-    rendered_form << form_tag({:controller => controller.controller_name, :action => 'create'}, :id => "Form-#{options[:object_name]}")
+    rendered_form << form_tag({:controller => controller.controller_name, :action => 'create'}, :id => "Form-#{options[:object_name]}", :class => ("Form-Step#{form_resource.displaying_step}" unless form_resource.displaying_step.nil?))
     rendered_form << hidden_field_tag('displaying_step', form_resource.displaying_step) unless form_resource.displaying_step.nil?
     rendered_form << hidden_field_tag('stylesheet', h(params[:stylesheet]), :id => nil) if controller.controller_name == 'iframes' && params[:stylesheet]
     rendered_form << render_dynamic_fields(form_resource, options)
