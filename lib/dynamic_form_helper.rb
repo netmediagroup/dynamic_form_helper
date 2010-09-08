@@ -57,7 +57,7 @@ module DynamicFormHelper
     rendered_form << render_dynamic_fields(form_resource, options)
     rendered_form << content_tag(:div, :id => "FormRow-Submit-#{options[:object_name]}", :class => 'FormField-Row FieldType-submit_button') do
       "\n" +
-      "  " + __submit_tag(:submit_name => options[:object_name], :submit_text => (form_resource.displaying_step != form_resource.last_step ? options[:step_submit_text] : options[:submit_text]), :displaying_step => form_resource.displaying_step) +
+      "  " + __submit_tag(:submit_name => options[:object_name], :submit_text => (!form_resource.displaying_step.nil? && form_resource.displaying_step != form_resource.last_step ? options[:step_submit_text] : options[:submit_text]), :displaying_step => form_resource.displaying_step) +
       "\n"
     end
     rendered_form << "</form>"
