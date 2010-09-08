@@ -261,9 +261,9 @@ module DynamicFormHelper
     return text
   end
 
-  def ____select(field, input_name, overriding_prompt=nil)
-    selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
-    prompt = overriding_prompt || (field.prompt if field.respond_to?(:prompt))
+  def ____select(field, input_name, override={})
+    selected_item = field.value.blank? ? (override[:default_option] || (field.default_option.item_value unless field.default_option.nil?)) : field.value
+    prompt = override[:prompt] || (field.prompt if field.respond_to?(:prompt))
 
     select_items = Array.new
     if field.combine_option_groups || field.option_groups.size <= 1
