@@ -76,22 +76,28 @@ module DynamicFormHelper
     rendered_fields = Array.new
 
     form_resource.fields.each do |field|
-      input_name = options[:object_name].blank? ? field.column_name : "#{options[:object_name]}[#{field.column_name}]"
+      if field.is_a?(Hash)
+        if field[:type] == :passthru
+          rendered_fields << field[:html]
+        end
+      else
+        input_name = options[:object_name].blank? ? field.column_name : "#{options[:object_name]}[#{field.column_name}]"
 
-      field.displayed_label = field.label.dup
-      field.displayed_label << ':' if !field.displayed_label.empty? && !['?','.'].include?(field.displayed_label[-1,1])
+        field.displayed_label = field.label.dup
+        field.displayed_label << ':' if !field.displayed_label.empty? && !['?','.'].include?(field.displayed_label[-1,1])
 
-      field.value = params[field.column_name] if field.value.nil? && !params[field.column_name].nil?
+        field.value = params[field.column_name] if field.value.nil? && !params[field.column_name].nil?
 
-      error_indicator_class = form_resource.errors.invalid?(field.column_name) ? ' fieldWithErrors' : ''
+        error_indicator_class = form_resource.errors.invalid?(field.column_name) ? ' fieldWithErrors' : ''
 
-      rendered_fields << content_tag(:div, :id => "FormRow-#{field.column_name}", :class => "FormField-Row FieldType-#{field.field_type}#{error_indicator_class}") do
-        "\n" +
-        self.send((field.display? ? "__#{field.field_type}" : :__hidden_field), field, input_name) +
-        "\n" +
-        "  " + content_tag(:div, '', :class => 'clear') +
-        "\n"
-      end unless !field.display? && field.value.blank?
+        rendered_fields << content_tag(:div, :id => "FormRow-#{field.column_name}", :class => "FormField-Row FieldType-#{field.field_type}#{error_indicator_class}") do
+          "\n" +
+          self.send((field.display? ? "__#{field.field_type}" : :__hidden_field), field, input_name) +
+          "\n" +
+          "  " + content_tag(:div, '', :class => 'clear') +
+          "\n"
+        end unless !field.display? && field.value.blank?
+      end
     end
 
     rendered_fields.join("\n")
