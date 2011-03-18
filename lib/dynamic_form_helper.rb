@@ -3,38 +3,40 @@ module DynamicFormHelper
 
   def error_messages_for_dynamic_form(object_name, options={})
     object = instance_variable_get("@#{object_name}")
-    object = object.dup if object.frozen?
+    unless object.is_a?(String)
+      object = object.dup if object.frozen?
 
-    if object.errors
-      options.reverse_merge!(
-        :header_tag => :p,
-        :header_message => "There #{object.errors.count == 1 ? 'was' : 'were'} #{pluralize(object.errors.count, 'error')} that did not allow your information to be processed.",
-        :message => nil,
-        :id => 'errorExplanation',
-        :class => 'errorExplanation',
-        :order_important => true
-      )
+      if object.errors
+        options.reverse_merge!(
+          :header_tag => :p,
+          :header_message => "There #{object.errors.count == 1 ? 'was' : 'were'} #{pluralize(object.errors.count, 'error')} that did not allow your information to be processed.",
+          :message => nil,
+          :id => 'errorExplanation',
+          :class => 'errorExplanation',
+          :order_important => true
+        )
 
-      unless object.errors.count.zero?
-        errors = object.errors.instance_variable_get('@errors')
+        unless object.errors.count.zero?
+          errors = object.errors.instance_variable_get('@errors')
 
-        if options[:order_important] && object.fields
-          error_messages = ''
-          object.fields.each do |field|
-            errors[field.column_name].each {|msg| error_messages << content_tag(:li, msg) } if errors[field.column_name]
+          if options[:order_important] && object.fields
+            error_messages = ''
+            object.fields.each do |field|
+              errors[field.column_name].each {|msg| error_messages << content_tag(:li, msg) } if errors[field.column_name]
+            end
+          else
+            error_messages = errors.values.flatten.map {|msg| content_tag(:li, msg) }
           end
+
+          contents = ''
+          contents << content_tag(options[:header_tag], options[:header_message]) unless options[:header_message].blank?
+          contents << content_tag(:p, options[:message]) unless options[:message].blank?
+          contents << content_tag(:ul, error_messages)
+
+          content_tag(:div, contents, {:id => options[:id], :class => options[:class]})
         else
-          error_messages = errors.values.flatten.map {|msg| content_tag(:li, msg) }
+          ''
         end
-
-        contents = ''
-        contents << content_tag(options[:header_tag], options[:header_message]) unless options[:header_message].blank?
-        contents << content_tag(:p, options[:message]) unless options[:message].blank?
-        contents << content_tag(:ul, error_messages)
-
-        content_tag(:div, contents, {:id => options[:id], :class => options[:class]})
-      else
-        ''
       end
     end
   end
@@ -57,7 +59,7 @@ module DynamicFormHelper
     rendered_form << render_dynamic_fields(form_resource, options)
     rendered_form << content_tag(:div, :id => "FormRow-Submit-#{options[:object_name]}", :class => 'FormField-Row FieldType-submit_button') do
       "\n" +
-      "  " + __submit_tag(:submit_name => options[:object_name], :submit_text => (!form_resource.displaying_step.nil? && form_resource.displaying_step != form_resource.last_step ? options[:step_submit_text] : options[:submit_text]), :displaying_step => form_resource.displaying_step) +
+      "  " + __submit_tag(:submit_name => options[:object_name], :submit_text => (!form_resource.displaying_step.nil? && form_resource.displaying_step != form_resource.last_step ? options[:step_submit_text] : options[:submit_text]), :displaying_step => form_resource.displaying_step, :submit_hover => (options[:submit_hover] unless options[:submit_hover].nil?)) +
       "\n"
     end
     rendered_form << "</form>"
@@ -319,7 +321,8 @@ module DynamicFormHelper
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
-      ____text_field(field, input_name)
+      ____text_field(field, input_name) +
+      (field.attributes['trailing_label'].nil? ? '' : __trailing_label(field.attributes['trailing_label']))
     end
     return text
   end
@@ -342,6 +345,10 @@ module DynamicFormHelper
     return text
   end
 
+  def __trailing_label(value)
+    content_tag(:span, value, :class => "trailing-label")
+  end
+
   # -----------------------------------------------------------------------------------------------
 
   def __submit_tag(options={})
@@ -358,8 +365,8 @@ module DynamicFormHelper
     btn = String.new
     btn << submit_tag(options[:submit_text],
       :class => "FormField-SubmitButton",
-      :onmouseover => "this.className='FormField-SubmitButton-on'; document.getElementById('#{span_id}').className='FormField-SubmitSpan-on';",
-      :onmouseout => "this.className='FormField-SubmitButton'; document.getElementById('#{span_id}').className='FormField-SubmitSpan';"
+      :onmouseover => (options[:submit_hover].nil? || options[:submit_hover] == true) ? "this.className='FormField-SubmitButton-on'; document.getElementById('#{span_id}').className='FormField-SubmitSpan-on';" : nil,
+      :onmouseout => (options[:submit_hover].nil? || options[:submit_hover] == true) ? "this.className='FormField-SubmitButton'; document.getElementById('#{span_id}').className='FormField-SubmitSpan';" : nil
     )
     btn << content_tag(:span, '', :class => "FormField-SubmitSpan", :id => span_id)
     return btn
