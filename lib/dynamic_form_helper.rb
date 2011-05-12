@@ -145,31 +145,35 @@ module DynamicFormHelper
   end
 
   def __multi_check_box(field, input_name)
-    # selected_items = !field.value.blank? ? field.value.to_a : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : [])
-    # 
-    # text = String.new
-    # 
-    # question = String.new
-    # question << __required_indicator_tag if field.required == true
-    # question << field.displayed_label
-    # 
-    # options = String.new
-    # field.option_groups.each do |option_group|
-    #   options << "\n    " + content_tag(:div, option_group.label, :class => 'CheckBox-GroupLabel') unless field.combine_option_groups
-    #   option_group.options.each do |option|
-    #     options << "\n    " + content_tag(:div, :class => 'CheckBox-Option') do
-    #       # check_box(input_name, option.value, :checked => selected_items.include?(option.value), :class => 'formCheck') +
-    #       check_box_tag("#{input_name}[]", option.value, selected_items.include?(option.value), :id => "#{sanitize_to_id(input_name)}_#{option.value}", :class => 'formCheck') +
-    #       label_tag("#{input_name}_#{option.value}", option.attributes['display'], :class => 'labelCheck')
-    #     end
-    #   end
-    # end
-    # options << "\n  "
-    # 
-    # text << "  " + content_tag(:div, question, :class => 'FormField-CheckQuestion')
-    # text << "\n"
-    # text << "  " + content_tag(:div, options, :class => "FormField-Input")
-    # return text
+    selected_items = if field.value.blank?
+      (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : [])
+    else
+      field.value.attributes.values rescue []
+    end
+
+    question = String.new
+    question << __required_indicator_tag if field.required == true
+    question << field.displayed_label
+
+    options = String.new
+    field.option_groups.each do |option_group|
+      options << "\n    " + content_tag(:div, option_group.label, :class => 'CheckBox-GroupLabel') unless field.combine_option_groups
+      option_group.options.each do |option|
+        input_id = "#{sanitize_to_id(input_name)}_#{sanitize_to_id(option.value)}"
+
+        options << "\n    " + content_tag(:div, :class => 'CheckBox-Option') do
+          check_box_tag("#{input_name}[]", option.value, selected_items.include?(option.value), :id => input_id, :class => 'formCheck') +
+          label_tag(input_id, option.attributes['display'], :class => 'labelCheck')
+        end
+      end
+    end
+    options << "\n  "
+
+    text = String.new
+    text << "  " + content_tag(:div, question, :class => 'FormField-CheckboxQuestion')
+    text << "\n"
+    text << "  " + content_tag(:div, options, :class => "FormField-Input")
+    return text
   end
 
   def __multi_select(field, input_name)
