@@ -153,7 +153,7 @@ module DynamicFormHelper
 
     question = String.new
     question << __required_indicator_tag if field.required == true
-    question << field.displayed_label
+    question << content_tag(:span, field.displayed_label, :class => "label")
 
     options = String.new
     field.option_groups.each do |option_group|
