@@ -241,7 +241,7 @@ module DynamicFormHelper
   def __radio_button(field, input_name)
     question = String.new
     question << __required_indicator_tag if field.required == true
-    question << field.displayed_label
+    question << __label_tag(input_name, field.displayed_label, :for => nil)
 
     selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
 
