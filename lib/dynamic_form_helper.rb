@@ -311,11 +311,14 @@ module DynamicFormHelper
   end
 
   def __text_area(field, input_name)
+    html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
+    html_options[:class] = 'formTextArea' if html_options[:class].nil?
+
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-TextArea") do
-      text_area_tag(input_name, h(field.value || field.prompt), field.html_options)
+      text_area_tag(input_name, h(field.value || field.prompt), html_options)
     end
     return text
   end
