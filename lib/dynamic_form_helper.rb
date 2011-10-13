@@ -49,7 +49,8 @@ module DynamicFormHelper
     options.reverse_merge!(
       :object_name => 'dynamic_form',
       :submit_text => 'Submit',
-      :step_submit_text => 'Next'
+      :step_submit_text => 'Next',
+      :required_indicator_position => 'left'
     )
 
     rendered_form =  Array.new
@@ -70,8 +71,9 @@ module DynamicFormHelper
     form_resource = form_resource.dup if form_resource.frozen?
 
     options.reverse_merge!(
+      :object_name => 'dynamic_form',
       :required_indicator => '*',
-      :object_name => 'dynamic_form'
+      :required_indicator_position => 'left'
     )
     @dynamic_options = options
 
@@ -152,8 +154,13 @@ module DynamicFormHelper
     end
 
     question = String.new
-    question << __required_indicator_tag if field.required == true
-    question << content_tag(:span, field.displayed_label, :class => "label")
+    if @dynamic_options && @dynamic_options[:required_indicator_position] == 'right'
+      question << content_tag(:span, field.displayed_label, :class => "label")
+      question << __required_indicator_tag if field.required == true
+    else
+      question << __required_indicator_tag if field.required == true
+      question << content_tag(:span, field.displayed_label, :class => "label")
+    end
 
     options = String.new
     field.option_groups.each do |option_group|
@@ -240,8 +247,13 @@ module DynamicFormHelper
 
   def __radio_button(field, input_name)
     question = String.new
-    question << __required_indicator_tag if field.required == true
-    question << __label_tag(input_name, field.displayed_label, :for => nil)
+    if @dynamic_options && @dynamic_options[:required_indicator_position] == 'right'
+      question << __label_tag(input_name, field.displayed_label, :for => nil)
+      question << __required_indicator_tag if field.required == true
+    else
+      question << __required_indicator_tag if field.required == true
+      question << __label_tag(input_name, field.displayed_label, :for => nil)
+    end
 
     selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
 
@@ -387,8 +399,13 @@ module DynamicFormHelper
 
   def __standard_label(input_name, label, required=false)
     text = String.new
-    text << __required_indicator_tag if required == true
-    text << __label_tag(input_name, label)
+    if @dynamic_options && @dynamic_options[:required_indicator_position] == 'right'
+      text << __label_tag(input_name, label)
+      text << __required_indicator_tag if required == true
+    else
+      text << __required_indicator_tag if required == true
+      text << __label_tag(input_name, label)
+    end
     return content_tag(:div, text, :class => "FormField-Label")
   end
 
