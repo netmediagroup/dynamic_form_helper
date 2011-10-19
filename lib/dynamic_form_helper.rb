@@ -50,7 +50,8 @@ module DynamicFormHelper
       :object_name => 'dynamic_form',
       :submit_text => 'Submit',
       :step_submit_text => 'Next',
-      :required_indicator_position => 'left'
+      :required_indicator_position => 'left',
+      :use_validation_classes => false
     )
 
     rendered_form =  Array.new
@@ -73,7 +74,8 @@ module DynamicFormHelper
     options.reverse_merge!(
       :object_name => 'dynamic_form',
       :required_indicator => '*',
-      :required_indicator_position => 'left'
+      :required_indicator_position => 'left',
+      :use_validation_classes => false
     )
     @dynamic_options = options
 
@@ -241,7 +243,14 @@ module DynamicFormHelper
     text << content_tag(:span, ')', :class => 'phoneDivider') if field.dividers == true
     text << text_field_tag(input_name.sub(']','_prefix]'), h(field.prefix || field.prefix_prompt), {:class => 'formPhone formPhone3', :maxlength => 3})
     text << content_tag(:span, '-', :class => 'phoneDivider') if field.dividers == true
-    text << text_field_tag(input_name.sub(']','_suffix]'), h(field.suffix || field.suffix_prompt), {:class => 'formPhone formPhone4', :maxlength => 4})
+
+    html_options = {:class => 'formPhone formPhone4', :maxlength => 4}
+    if @dynamic_options && @dynamic_options[:use_validation_classes] == true
+      html_options[:class] << ' validate-required-phone' if field.required?
+      html_options[:class] << ' validate-phone'
+    end
+    text << text_field_tag(input_name.sub(']','_suffix]'), h(field.suffix || field.suffix_prompt), html_options)
+
     return text
   end
 
@@ -257,11 +266,21 @@ module DynamicFormHelper
 
     selected_item = field.value.blank? ? (field.default_option.nil? ? nil : field.default_option.item_value) : field.value
 
+    if @dynamic_options && @dynamic_options[:use_validation_classes] == true && field.required?
+      last_option = field.option_groups.last.options.last rescue nil
+    end
+
     options = String.new
     field.option_groups.each do |group|
       group.options.each do |option|
         options << content_tag(:span, :class => 'spanRadio') do
-          radio_button_tag(input_name, option.value, selected_item == option.value, :class => 'formRadio') +
+
+          html_options = {:class => 'formRadio'}
+          if @dynamic_options && @dynamic_options[:use_validation_classes] == true && field.required?
+            html_options[:class] << ' validate-one-required' if option.attributes['display'] == last_option.attributes['display'] && option.value == last_option.value
+          end
+
+          radio_button_tag(input_name, option.value, selected_item == option.value, html_options) +
           __label_tag("#{input_name}_#{option.value.downcase}", option.attributes['display'], :class => 'labelRadio')
         end
       end
@@ -351,12 +370,17 @@ module DynamicFormHelper
     value = field.value || prompt
 
     html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
-    html_options[:class] = 'formInput' if html_options[:class].nil?
+    html_options[:class] ||= 'formInput'
+
+    if @dynamic_options && @dynamic_options[:use_validation_classes] == true
+      html_options[:class] << ' required' if field.required?
+      html_options[:class] << ' validate-email' if field.column_name == 'email'
+    end
 
     unless prompt.blank?
       html_options[:onfocus] = "if(this.value=='#{prompt}'){this.value=''; this.className='#{html_options[:class]}';}"
       html_options[:onblur] = "if(this.value==''){this.value='#{prompt}'; this.className='#{html_options[:class]} prompt';}"
-      html_options[:class] = "#{html_options[:class]} prompt" if value == prompt
+      html_options[:class] << ' prompt' if value == prompt
     end
 
     text = String.new
