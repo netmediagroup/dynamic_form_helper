@@ -51,7 +51,8 @@ module DynamicFormHelper
       :submit_text => 'Submit',
       :step_submit_text => 'Next',
       :required_indicator_position => 'left',
-      :use_validation_classes => false
+      :use_validation_classes => false,
+      :inline_field_dependencies => true
     )
 
     rendered_form =  Array.new
@@ -75,7 +76,8 @@ module DynamicFormHelper
       :object_name => 'dynamic_form',
       :required_indicator => '*',
       :required_indicator_position => 'left',
-      :use_validation_classes => false
+      :use_validation_classes => false,
+      :inline_field_dependencies => true
     )
     @dynamic_options = options
 
@@ -89,31 +91,49 @@ module DynamicFormHelper
       else
         input_name = options[:object_name].blank? ? field.column_name : "#{options[:object_name]}[#{field.column_name}]"
 
-        field.displayed_label = field.label.dup
+        field.displayed_label = field.label.dup rescue ''
         field.displayed_label << ':' if !field.displayed_label.empty? && !['?','.'].include?(field.displayed_label[-1,1])
 
         field.value = params[field.column_name] if field.value.nil? && !params[field.column_name].nil?
 
         error_indicator_class = form_resource.errors.invalid?(field.column_name) ? ' fieldWithErrors' : ''
 
-        rendered_fields << content_tag(:div, :id => "FormRow-#{field.column_name}", :class => "FormField-Row FieldType-#{field.field_type}#{error_indicator_class}") do
-          "\n" +
-          self.send((field.display? ? "__#{field.field_type}" : :__hidden_field), field, input_name) +
-          "\n" +
-          "  " + content_tag(:div, '', :class => 'clear') +
-          "\n"
-        end unless !field.display? && field.value.blank?
+        if field.display? != false || field.value.present?
+          row_options = {:id => "FormRow-#{field.column_name}", :class => "FormField-Row FieldType-#{field.field_type}#{error_indicator_class}"}
+          field_options = {}
+
+          if options[:inline_field_dependencies] == true
+            field_options['data-children'] = field.children
+
+            field.parents.attributes.each do |key, value|
+              row_options["data-dependency-#{key}"] = "#{value}"
+            end if field.parents && !field.parents.empty?
+
+            if field.display? == 'dependent'
+              row_options[:style] = "display:none;"
+              field_options[:disabled] = true
+            end
+          end
+
+          rendered_fields << content_tag(:div, row_options) do
+            "\n" +
+            self.send((field.display? == false ? :__hidden_field : "__#{field.field_type}"), field, input_name, field_options) +
+            "\n" +
+            "  " + content_tag(:div, '', :class => 'clear') +
+            "\n"
+          end
+        end
       end
     end
 
     rendered_fields.join("\n")
   end
 
-  def __check_box(field, input_name)
+  def __check_box(field, input_name, field_options={})
     box = String.new
     box << __required_indicator_tag if field.required == true
     box << content_tag(:div, :class => "FormField-Checkbox") do
-      ____check_box(field, input_name)
+      ____check_box(field, input_name, field_options)
     end
     box << content_tag(:div, :class => "FormField-CheckboxLabel") do
       __label_tag(input_name, field.displayed_label)
@@ -121,16 +141,16 @@ module DynamicFormHelper
     return box
   end
 
-  def ____check_box(field, input_name)
+  def ____check_box(field, input_name, field_options={})
     text = String.new
     text << check_box_tag(input_name, field.input_value, !field.value.blank?)
     return text
   end
 
-  def __file(field, input_name)
+  def __file(field, input_name, field_options={})
   end
 
-  def __hidden_field(field, input_name)
+  def __hidden_field(field, input_name, field_options={})
     text = String.new
     text << "  " + content_tag(:div, :class => "FormField-Hidden") do
       hidden_field_tag(input_name, h(field.value), {:id => nil})
@@ -138,7 +158,7 @@ module DynamicFormHelper
     return text
   end
 
-  def __password(field, input_name)
+  def __password(field, input_name, field_options={})
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
@@ -148,7 +168,7 @@ module DynamicFormHelper
     return text
   end
 
-  def __multi_check_box(field, input_name)
+  def __multi_check_box(field, input_name, field_options={})
     selected_items = if field.value.blank?
       (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : [])
     else
@@ -185,7 +205,7 @@ module DynamicFormHelper
     return text
   end
 
-  def __multi_select(field, input_name)
+  def __multi_select(field, input_name, field_options={})
     # selected_items = !field.value.blank? ? field.value : (!field.default_options.empty? ? field.default_options.collect{|option| option.value} : nil)
     # select_items = Array.new
     # if field.combine_option_groups || field.option_groups.size <= 1
@@ -213,8 +233,8 @@ module DynamicFormHelper
     # return text
   end
 
-  def __phone(field, input_name)
-    return __text_field(field, input_name) unless field.separate_inputs
+  def __phone(field, input_name, field_options={})
+    return __text_field(field, input_name, field_options) unless field.separate_inputs
 
     field.area = params["#{field.column_name}_area"].nil? ? field.value[0..2] : params["#{field.column_name}_area"] if field.area.nil? && (!field.value.nil? || !params["#{field.column_name}_area"].nil?)
     field.prefix = params["#{field.column_name}_prefix"].nil? ? field.value[3..5] : params["#{field.column_name}_prefix"] if field.prefix.nil? && (!field.value.nil? || !params["#{field.column_name}_prefix"].nil?)
@@ -224,14 +244,14 @@ module DynamicFormHelper
     text << "  " + __standard_label(input_name.sub(']','_area]'), field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
-      ____phone(field, input_name)
+      ____phone(field, input_name, field_options)
     end
 
     return text
   end
 
-  def ____phone(field, input_name)
-    return ____text_field(field, input_name) unless field.separate_inputs
+  def ____phone(field, input_name, field_options={})
+    return ____text_field(field, input_name, field_options) unless field.separate_inputs
 
     field.area = params["#{field.column_name}_area"].nil? ? field.value[0..2] : params["#{field.column_name}_area"] if field.area.nil? && (!field.value.nil? || !params["#{field.column_name}_area"].nil?)
     field.prefix = params["#{field.column_name}_prefix"].nil? ? field.value[3..5] : params["#{field.column_name}_prefix"] if field.prefix.nil? && (!field.value.nil? || !params["#{field.column_name}_prefix"].nil?)
@@ -254,7 +274,7 @@ module DynamicFormHelper
     return text
   end
 
-  def __radio_button(field, input_name)
+  def __radio_button(field, input_name, field_options={})
     question = String.new
     if @dynamic_options && @dynamic_options[:required_indicator_position] == 'right'
       question << __label_tag(input_name, field.displayed_label, :for => nil)
@@ -293,20 +313,20 @@ module DynamicFormHelper
     return text
   end
 
-  def __select(field, input_name)
+  def __select(field, input_name, field_options={})
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Select") do
-      ____select(field, input_name)
+      ____select(field, input_name, field_options)
     end
 
     return text
   end
 
-  def ____select(field, input_name, override={})
-    selected_item = field.value.blank? ? (override[:default_option] || (field.default_option.item_value unless field.default_option.nil?)) : field.value
-    prompt = override[:prompt] || (field.prompt if field.respond_to?(:prompt))
+  def ____select(field, input_name, field_options={})
+    selected_item = field.value.blank? ? ((field_options[:override][:default_option] if field_options[:override]) || (field.default_option.item_value unless field.default_option.nil?)) : field.value
+    prompt = (field_options[:override][:prompt] if field_options[:override]) || (field.prompt if field.respond_to?(:prompt))
 
     select_items = Array.new
     if field.combine_option_groups || field.option_groups.size <= 1
@@ -324,7 +344,7 @@ module DynamicFormHelper
       options = grouped_options_for_select(select_items, selected_item, grouped_prompt)
     end
 
-    html_options = {:class => 'formSelect'}
+    html_options = {:class => 'formSelect'}.merge!(field_options)
 
     unless prompt.blank?
       first_value = options.match(/^<option.*?>(.*?)</)
@@ -341,7 +361,7 @@ module DynamicFormHelper
     return text
   end
 
-  def __text_area(field, input_name)
+  def __text_area(field, input_name, field_options={})
     html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
     html_options[:class] = 'formTextArea' if html_options[:class].nil?
 
@@ -354,19 +374,19 @@ module DynamicFormHelper
     return text
   end
 
-  def __text_field(field, input_name)
+  def __text_field(field, input_name, field_options={})
     text = String.new
     text << "  " + __standard_label(input_name, field.displayed_label, field.required == true)
     text << "\n"
     text << "  " + content_tag(:div, :class => "FormField-Input") do
-      ____text_field(field, input_name) +
+      ____text_field(field, input_name, field_options) +
       (field.attributes['trailing_label'].nil? ? '' : __trailing_label(field.attributes['trailing_label']))
     end
     return text
   end
 
-  def ____text_field(field, input_name, overriding_prompt=nil)
-    prompt = overriding_prompt || (field.prompt if field.respond_to?(:prompt))
+  def ____text_field(field, input_name, field_options={})
+    prompt = field_options[:overriding_prompt] || (field.prompt if field.respond_to?(:prompt))
     value = field.value || prompt
 
     html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
