@@ -105,9 +105,9 @@ module DynamicFormHelper
           if options[:inline_field_dependencies] == true
             field_options['data-children'] = field.attributes['children']
 
-            field.parents.attributes.each do |key, value|
+            field.attributes['parents'].attributes.each do |key, value|
               row_options["data-dependency-#{key}"] = "#{value}"
-            end if field.parents && !field.parents.empty?
+            end if field.attributes['parents'] && !field.attributes['parents'].empty?
 
             if field.display? == 'dependent'
               row_options[:style] = "display:none;"
