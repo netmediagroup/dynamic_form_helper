@@ -103,7 +103,7 @@ module DynamicFormHelper
           field_options = {}
 
           if options[:inline_field_dependencies] == true
-            field_options['data-children'] = field.children
+            field_options['data-children'] = field.attributes['children']
 
             field.parents.attributes.each do |key, value|
               row_options["data-dependency-#{key}"] = "#{value}"
