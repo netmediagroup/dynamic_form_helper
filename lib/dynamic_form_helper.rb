@@ -257,19 +257,22 @@ module DynamicFormHelper
     field.prefix = params["#{field.column_name}_prefix"].nil? ? field.value[3..5] : params["#{field.column_name}_prefix"] if field.prefix.nil? && (!field.value.nil? || !params["#{field.column_name}_prefix"].nil?)
     field.suffix = params["#{field.column_name}_suffix"].nil? ? field.value[6..9] : params["#{field.column_name}_suffix"] if field.suffix.nil? && (!field.value.nil? || !params["#{field.column_name}_suffix"].nil?)
 
+    html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
+    html_options[:type] = field.html5_type if field.respond_to?('html5_type')
+
     text = String.new
     text << content_tag(:span, '(', :class => 'phoneDivider') if field.dividers == true
-    text << text_field_tag(input_name.sub(']','_area]'), h(field.area || field.area_prompt), {:class => 'formPhone formPhone3', :maxlength => 3})
+    text << text_field_tag(input_name.sub(']','_area]'), h(field.area || field.area_prompt), {:class => 'formPhone formPhone3', :maxlength => 3}.reverse_merge(html_options))
     text << content_tag(:span, ')', :class => 'phoneDivider') if field.dividers == true
-    text << text_field_tag(input_name.sub(']','_prefix]'), h(field.prefix || field.prefix_prompt), {:class => 'formPhone formPhone3', :maxlength => 3})
+    text << text_field_tag(input_name.sub(']','_prefix]'), h(field.prefix || field.prefix_prompt), {:class => 'formPhone formPhone3', :maxlength => 3}.reverse_merge(html_options))
     text << content_tag(:span, '-', :class => 'phoneDivider') if field.dividers == true
 
-    html_options = {:class => 'formPhone formPhone4', :maxlength => 4}
+    suffix_html_options = {:class => 'formPhone formPhone4', :maxlength => 4}.reverse_merge(html_options)
     if @dynamic_options && @dynamic_options[:use_validation_classes] == true
-      html_options[:class] << ' validate-required-phone' if field.required?
-      html_options[:class] << ' validate-phone'
+      suffix_html_options[:class] << ' validate-required-phone' if field.required?
+      suffix_html_options[:class] << ' validate-phone'
     end
-    text << text_field_tag(input_name.sub(']','_suffix]'), h(field.suffix || field.suffix_prompt), html_options)
+    text << text_field_tag(input_name.sub(']','_suffix]'), h(field.suffix || field.suffix_prompt), suffix_html_options)
 
     return text
   end
@@ -391,6 +394,7 @@ module DynamicFormHelper
 
     html_options = field.respond_to?(:html_options) ? field.html_options.attributes : {}
     html_options[:class] ||= 'formInput'
+    html_options[:type] = field.html5_type if field.respond_to?('html5_type')
 
     if @dynamic_options && @dynamic_options[:use_validation_classes] == true
       html_options[:class] << ' required' if field.required?
